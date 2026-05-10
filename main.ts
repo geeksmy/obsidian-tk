@@ -143,7 +143,11 @@ export default class TkPlugin extends Plugin {
 
   wrapSource(source: string): string {
     // 替换非 standalone 文档类，避免 article 等产生空白首页
+    // animate/OCG 等需要完整文档类，保留用户指定
     if (/\\documentclass\b/.test(source)) {
+      if (/\\animategraphics|\\begin\{animateinline\}|animate/.test(source)) {
+        return source; // 保留用户文档类
+      }
       return source.replace(
         /\\documentclass(\[[^\]]*\])?\{[^}]*\}/,
         '\\documentclass[tikz,border=10pt]{standalone}',
@@ -307,13 +311,26 @@ export default class TkPlugin extends Plugin {
   renderPDF(container: HTMLElement, data: Uint8Array) {
     const blob = new Blob([data.buffer as ArrayBuffer], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
-    const embed = container.createEl("embed");
+
+    // 浏览器内嵌 PDF 查看器不支持 JavaScript，故 animate 等需外部打开
+    const note = container.createDiv({ cls: "tk-pdf-note" });
+    note.setText("💡 PDF 内嵌动画/交互需在外部应用打开");
+    const openBtn = note.createEl("button", { text: "在外部应用中打开" });
+    openBtn.onclick = async () => {
+      const { shell } = require("electron");
+      // 将当前 blob 写入临时文件并打开
+      const { mkdtemp, writeFile } = require("fs/promises");
+      const { join } = require("path");
+      const { tmpdir } = require("os");
+      const tmp = await mkdtemp(join(tmpdir(), "tkpdf-"));
+      const pdfPath = join(tmp, "doc.pdf");
+      await writeFile(pdfPath, Buffer.from(data));
+      shell.openPath(pdfPath);
+    };
+
+    const embed = container.createEl("embed", { cls: "tk-pdf-embed" });
     embed.src = url;
     embed.type = "application/pdf";
-    embed.style.width = "100%";
-    embed.style.minHeight = "600px";
-    embed.style.border = "none";
-    embed.style.borderRadius = "4px";
   }
 
   // ── 渲染入口 ──
