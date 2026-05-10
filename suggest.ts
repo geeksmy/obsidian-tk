@@ -31,10 +31,20 @@ const cmds: Suggestion[] = [
   s("definecolor  定义颜色", "\\definecolor{}{rgb}{}"),
   s("onslide  指定帧", "\\onslide<>{}"), s("only  仅指定帧", "\\only<>{}"),
   s("pause  暂停", "\\pause"),
+  s("tikzset  全局样式", "\\tikzset{}"),
+  s("shadedraw  渐变描边", "\\shadedraw[] ();"),
+  s("pattern  图案填充", "\\pattern[] ();"),
+  s("legend  图例", "\\legend{}"),
+  s("addplot+  数据图带样式", "\\addplot+[] coordinates {};"),
+  s("addplot3+  3D图带样式", "\\addplot3+[] coordinates {};"),
+  s("colorlet  派生颜色", "\\colorlet{}{}"),
+  s("pgfmathsetmacro  数学宏", "\\pgfmathsetmacro{\\}{}"),
+  s("addplot table  表格数据", "\\addplot[] table {};"),
 ];
 
 const braceEnvs = ["tikzpicture","axis","scope","tikzcd","matrix",
-  "semilogxaxis","semilogyaxis","loglogaxis","polaraxis","groupplot"];
+  "semilogxaxis","semilogyaxis","loglogaxis","polaraxis","groupplot",
+  "ternaryaxis","document","frame"];
 const braceLibs = ["arrows","arrows.meta","calc","decorations","patterns","shapes",
   "positioning","backgrounds","fit","3d","shadings","through","intersections",
   "angles","quotes","mindmap","trees","graphs","automata","circuits","matrix"];
@@ -54,6 +64,19 @@ const opts: Suggestion[] = [
   s("xmin= x最小", "xmin="), s("xmax= x最大", "xmax="),
   s("xlabel= x标签", "xlabel="), s("ylabel= y标签", "ylabel="),
   s("view= 3D视角", "view={}{}"), s("surf 曲面", "surf"),
+  s("smooth  平滑曲线", "smooth"), s("only marks  仅标记", "only marks"),
+  s("remember picture  跨图坐标", "remember picture"),
+  s("overlay  浮层不占位", "overlay"),
+  s("transform shape  变换节点", "transform shape"),
+  s("shorten >=  缩短箭头起点", "shorten >="),
+  s("shorten <=  缩短箭头终点", "shorten <="),
+  s("mark=*  圆点标记", "mark=*"),
+  s("bar width=  柱宽", "bar width="),
+  s("enlarge x limits=  扩展x范围", "enlarge x limits="),
+  s("colormap=  颜色映射", "colormap="),
+  s("colorbar  颜色条", "colorbar"),
+  s("xticklabels=  tick标签", "xticklabels="),
+  s("legend pos=  图例位置", "legend pos="),
 ];
 
 const templates: Suggestion[] = [
