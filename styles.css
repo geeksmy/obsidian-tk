@@ -122,31 +122,6 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* PDF 嵌入 */
-
-.tk-pdf-embed {
-  width: 100%;
-  min-height: 600px;
-  border: none;
-  border-radius: 0;
-  background: var(--background-primary);
-}
-
-.tk-pdf-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0 8px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.tk-pdf-note button {
-  font-size: 12px;
-  padding: 2px 8px;
-  cursor: pointer;
-}
-
 /* 加载提示 */
 
 .tk-loading {
