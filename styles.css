@@ -132,6 +132,13 @@
   background: var(--background-primary);
 }
 
+.tk-pdf-img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
 .tk-pdf-note {
   display: flex;
   align-items: center;
