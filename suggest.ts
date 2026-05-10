@@ -119,17 +119,7 @@ const beamerCmds: Suggestion[] = [
 ];
 
 // ═══════════════════════════════════════════════
-// 8. 外部化/图片
-// ═══════════════════════════════════════════════
-const extCmds: Suggestion[] = [
-  s("tikzexternalize  启用外部化", "\\tikzexternalize[]"),
-  s("tikzsetnextfilename  指定外部文件名", "\\tikzsetnextfilename{}"),
-  s("includegraphics  插入图片", "\\includegraphics[]{}"),
-  s("pgfimage  插入PG图片", "\\pgfimage[]{}"),
-];
-
-// ═══════════════════════════════════════════════
-// 9. 透明度/混合
+// 8. 透明度/混合（TikZ 特性，SVG 可用）
 // ═══════════════════════════════════════════════
 const blendCmds: Suggestion[] = [
   s("transparency group  透明度组", "\\begin{scope}[transparency group=knockout]\n  \n\\end{scope}"),
@@ -139,7 +129,7 @@ const blendCmds: Suggestion[] = [
 // ── 合并所有命令 ──
 const allCmds: Suggestion[] = [
   ...drawCmds, ...nodeCmds, ...envCmds, ...plotCmds,
-  ...styleCmds, ...flowCmds, ...beamerCmds, ...extCmds, ...blendCmds,
+  ...styleCmds, ...flowCmds, ...beamerCmds, ...blendCmds,
 ];
 
 // ═══════════════════════════════════════════════
@@ -180,7 +170,7 @@ const bracePkgs = [
   "graphicx","geometry","hyperref","booktabs","siunitx",
   "tikz-3dplot","circuitikz","pgfplotstable","subcaption",
   "tkz-euclide","tkz-fct","pgf-pie","hf-tikz",
-  "standalone","animate","multido","fp","calc",
+  "standalone","multido","fp","calc",
 ];
 
 // ═══════════════════════════════════════════════
