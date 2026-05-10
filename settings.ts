@@ -6,7 +6,6 @@ export interface TkPluginSettings {
   compilerPath: string;
   dvisvgmPath: string;
   ghostscriptLibPath: string;
-  mupdfPath: string;
   invertColorsInDarkMode: boolean;
   outputMode: "svg" | "pdf";
 }
@@ -15,7 +14,6 @@ export const DEFAULT_SETTINGS: TkPluginSettings = {
   compilerPath: "",
   dvisvgmPath: "",
   ghostscriptLibPath: "",
-  mupdfPath: "",
   invertColorsInDarkMode: true,
   outputMode: "svg",
 };
@@ -71,19 +69,6 @@ export class TkSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.ghostscriptLibPath)
           .onChange(async (value) => {
             this.plugin.settings.ghostscriptLibPath = value;
-            await this.plugin.saveSettings();
-          })
-      );
-
-    new Setting(containerEl)
-      .setName("MuPDF 路径 (mutool)")
-      .setDesc("mutool 可执行文件路径。PDF 模式下，若找到 mutool，则用其渲染 PDF 页为高清图后展示（brew install mupdf）。留空则自动检测。")
-      .addText((text) =>
-        text
-          .setPlaceholder("自动检测")
-          .setValue(this.plugin.settings.mupdfPath)
-          .onChange(async (value) => {
-            this.plugin.settings.mupdfPath = value;
             await this.plugin.saveSettings();
           })
       );

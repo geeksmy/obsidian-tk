@@ -80,61 +80,10 @@ export default class TkPlugin extends Plugin {
 
   findPdflatex(): string {
     if (this.settings.compilerPath) {
+      // 用户指定了 compilerPath，尝试推导 pdflatex
       return this.settings.compilerPath.replace(/latex$/, "pdflatex");
     }
     return this.findTool("pdflatex");
-  }
-
-  findMutool(): string | null {
-    if (this.settings.mupdfPath) return this.settings.mupdfPath;
-    const os = platform();
-    const candidates: string[] = [];
-    if (os === "darwin") {
-      candidates.push(
-        "/opt/homebrew/bin/mutool",
-        "/usr/local/bin/mutool",
-      );
-    } else if (os === "linux") {
-      candidates.push("/usr/bin/mutool", "/usr/local/bin/mutool");
-    } else if (os === "win32") {
-      candidates.push("C:\\Program Files\\mupdf\\mutool.exe");
-    }
-    for (const p of candidates) {
-      if (existsSync(p)) return p;
-    }
-    return null;
-  }
-
-  // ── MuPDF 渲染 PDF 页为图片 ──
-
-  async renderPDFPages(pdfPath: string, tempDir: string): Promise<string[]> {
-    const mutool = this.findMutool();
-    if (!mutool) throw new Error("未找到 mutool，请安装 MuPDF (brew install mupdf)");
-
-    await new Promise<void>((resolve, reject) => {
-      exec(
-        `"${mutool}" draw -r 96 -o "${tempDir}/page-%d.png" "${pdfPath}"`,
-        { cwd: tempDir, timeout: 30000 },
-        (err) => err ? reject(new Error(`mutool 渲染失败:\n${err.message}`)) : resolve(),
-      );
-    });
-
-    const files = await fs.readdir(tempDir);
-    const pngFiles = files
-      .filter((f) => /^page-\d+\.png$/.test(f))
-      .sort((a, b) => {
-        const na = parseInt(a.match(/\d+/)![0]);
-        const nb = parseInt(b.match(/\d+/)![0]);
-        return na - nb;
-      });
-
-    const images: string[] = [];
-    for (const f of pngFiles) {
-      const data = await fs.readFile(join(tempDir, f));
-      const base64 = `data:image/png;base64,${data.toString("base64")}`;
-      images.push(base64);
-    }
-    return images;
   }
 
   // ── PDF 编译管线 ──
@@ -319,31 +268,19 @@ export default class TkPlugin extends Plugin {
     let tempDir: string | null = null;
     try {
       if (isPDF) {
-        const cached = await localForage.getItem<string[]>(cacheKey);
+        const cached = await localForage.getItem<Uint8Array>(cacheKey);
         if (cached) {
           container.empty();
-          this.renderPDFImages(container, cached);
+          this.renderPDF(container, cached);
           return;
         }
         const tex = this.wrapSource(source);
         tempDir = await fs.mkdtemp(join(tmpdir(), "tkrender-"));
         const pdfPath = await this.compilePDF(tex, tempDir);
-
-        // 优先使用 MuPDF 渲染为高清图
-        const mutool = this.findMutool();
-        if (mutool) {
-          const images = await this.renderPDFPages(pdfPath, tempDir);
-          if (images.length === 0) throw new Error("MuPDF 未生成任何图片");
-          await localForage.setItem(cacheKey, images);
-          container.empty();
-          this.renderPDFImages(container, images);
-        } else {
-          // 无 MuPDF，使用 embed 方式
-          const data = new Uint8Array(await fs.readFile(pdfPath));
-          await localForage.setItem(cacheKey, [URL.createObjectURL(new Blob([data.buffer as ArrayBuffer], { type: "application/pdf" }))]);
-          container.empty();
-          this.renderPDFEmbed(container, data);
-        }
+        const data = new Uint8Array(await fs.readFile(pdfPath));
+        await localForage.setItem(cacheKey, data);
+        container.empty();
+        this.renderPDF(container, data);
       } else {
         const cached = await localForage.getItem<string[]>(cacheKey);
         if (cached) {
@@ -369,93 +306,19 @@ export default class TkPlugin extends Plugin {
     }
   }
 
-  // ── PDF 渲染（MuPDF 图片模式）─
+  // ── PDF 渲染 ──
 
-  renderPDFImages(container: HTMLElement, images: string[]) {
-    if (images.length === 1) {
-      const img = container.createEl("img", { cls: "tk-pdf-img" });
-      img.src = images[0];
-      return;
-    }
-    // 多页动画
-    const wrapper = container.createDiv({ cls: "tk-frames" });
-    wrapper.style.display = "grid";
-    wrapper.style.gridTemplateAreas = '"stack"';
-    const frames: HTMLElement[] = [];
-
-    for (let i = 0; i < images.length; i++) {
-      const frame = wrapper.createDiv({ cls: i === 0 ? "tk-frame active" : "tk-frame" });
-      frame.style.gridArea = "stack";
-      frame.createEl("img", { cls: "tk-pdf-img" }).src = images[i];
-      frames.push(frame);
-    }
-
-    let current = 0;
-    let playing = true;
-    let timer: ReturnType<typeof setInterval> | null = null;
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) playing = false;
-
-    const icon = (d: string) => `<svg viewBox="0 0 16 16"><path d="${d}"/></svg>`;
-    const controls = wrapper.createDiv({ cls: "tk-controls" });
-
-    const prevBtn = controls.createEl("button");
-    prevBtn.innerHTML = icon("M10 3 L5 8 L10 13");
-    prevBtn.onclick = () => { frames[current].classList.remove("active"); current = (current - 1 + frames.length) % frames.length; frames[current].classList.add("active"); counter.setText(`${current + 1} / ${frames.length}`); };
-
-    const playBtn = controls.createEl("button");
-    const updateIcon = () => { playBtn.innerHTML = playing ? icon("M5 3 L5 13") : icon("M4 3 L4 13 L12 8 Z"); };
-    updateIcon();
-    playBtn.onclick = () => {
-      playing = !playing;
-      updateIcon();
-      if (playing) {
-        timer = setInterval(() => {
-          frames[current].classList.remove("active");
-          current = (current + 1) % frames.length;
-          frames[current].classList.add("active");
-          counter.setText(`${current + 1} / ${frames.length}`);
-        }, 800);
-      } else {
-        if (timer) { clearInterval(timer); timer = null; }
-      }
-    };
-
-    const nextBtn = controls.createEl("button");
-    nextBtn.innerHTML = icon("M6 3 L11 8 L6 13");
-    nextBtn.onclick = () => { frames[current].classList.remove("active"); current = (current + 1) % frames.length; frames[current].classList.add("active"); counter.setText(`${current + 1} / ${frames.length}`); };
-
-    const counter = controls.createSpan({ cls: "tk-frame-counter" });
-    counter.setText(`${current + 1} / ${frames.length}`);
-
-    if (playing) {
-      timer = setInterval(() => {
-        frames[current].classList.remove("active");
-        current = (current + 1) % frames.length;
-        frames[current].classList.add("active");
-        counter.setText(`${current + 1} / ${frames.length}`);
-      }, 800);
-    }
-
-    wrapper.tabIndex = 0;
-    wrapper.onkeydown = (e) => {
-      if (e.key === "ArrowLeft") prevBtn.click();
-      else if (e.key === "ArrowRight") nextBtn.click();
-      else if (e.key === " ") playBtn.click();
-    };
-  }
-
-  // ── PDF 渲染（embed 后备）─
-
-  renderPDFEmbed(container: HTMLElement, data: Uint8Array) {
+  renderPDF(container: HTMLElement, data: Uint8Array) {
     const blob = new Blob([data.buffer as ArrayBuffer], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
 
+    // 浏览器内嵌 PDF 查看器不支持 JavaScript，故 animate 等需外部打开
     const note = container.createDiv({ cls: "tk-pdf-note" });
-    note.setText("💡 安装 MuPDF (brew install mupdf) 后可使用高清渲染和动画");
+    note.setText("💡 PDF 内嵌动画/交互需在外部应用打开");
     const openBtn = note.createEl("button", { text: "在外部应用中打开" });
     openBtn.onclick = async () => {
       const { shell } = require("electron");
+      // 将当前 blob 写入临时文件并打开
       const { mkdtemp, writeFile } = require("fs/promises");
       const { join } = require("path");
       const { tmpdir } = require("os");
