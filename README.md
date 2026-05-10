@@ -4,22 +4,40 @@
 
 ## 功能
 
-- **本地编译**：latex → DVI → dvisvgm + libgs → SVG，可使用系统所有 LaTeX 宏包
+- **双输出模式**：SVG（内联矢量、动图、暗色适配）| PDF（完整 LaTeX：animate、OCG、表单、中文）
 - **动图支持**：多页 SVG 自动轮播，悬停显示播放控件（◀ ▶ ⏸ 帧计数），支持键盘 ← → 空格
-- **暗色模式**：自动反转 SVG 颜色（黑→currentColor，白→背景色）
-- **智能补全**：`\` 命令、`{}` 环境名、`[]` 样式选项、`()` 坐标、空行弹出 15 种结构模板
+- **暗色模式**：SVG 模式自动反转颜色（黑→currentColor，白→背景色）
+- **智能补全**：`\` 命令、`{}` 环境名、`[]` 样式选项、`()` 坐标、空行弹出 20 种结构模板
 - **自动缓存**：MD5 哈希 + IndexedDB，源码不变不重新编译
+- **~400 项补全**：按 TikZ 手册全量覆盖命令、选项、环境、库名
 
 ## 依赖
 
-| 工具 | 用途 | macOS 默认路径 |
-|------|------|---------------|
-| LaTeX (texlive) | 编译 TikZ 为 DVI | `/Library/TeX/texbin/latex` |
-| dvisvgm | DVI 转 SVG | `/Library/TeX/texbin/dvisvgm` |
-| Ghostscript | PostScript specials (pgfplots 必需) | `/opt/homebrew/lib/libgs.dylib` |
+| 工具 | 用途 | macOS 默认路径 | 模式 |
+|------|------|---------------|------|
+| LaTeX (texlive) | 编译 TikZ 为 DVI | `/Library/TeX/texbin/latex` | SVG |
+| dvisvgm | DVI 转 SVG | `/Library/TeX/texbin/dvisvgm` | SVG |
+| Ghostscript | PostScript specials (pgfplots 必需) | `/opt/homebrew/lib/libgs.dylib` | SVG |
+| pdflatex (texlive) | 编译 TikZ 为 PDF | `/Library/TeX/texbin/pdflatex` | PDF |
 
 安装 TeX Live：`brew install --cask mactex` 或 <https://tug.org/mactex/>  
 安装 Ghostscript：`brew install ghostscript`
+
+### SVG vs PDF 模式
+
+| 特性 | SVG | PDF |
+|------|-----|-----|
+| 静态 TikZ 图形 | ✓ | ✓ |
+| pgfplots 图表 | ✓ | ✓ |
+| beamer 逐帧动画 | ✓ | ✓ |
+| 暗色模式适配 | ✓ | ✗ |
+| `animate` 动画包 | ✗ | ✓ |
+| OCG 交互图层 | ✗ | ✓ |
+| 表单/按钮 | ✗ | ✓ |
+| 中文字体 | 转路径 | 原生嵌入 |
+| `\includegraphics` | ✗ | ✓ |
+
+在插件设置中切换输出模式。
 
 ## 安装
 
@@ -85,11 +103,12 @@
 
 | 选项 | 说明 |
 |------|------|
+| 输出模式 | SVG（默认）或 PDF |
 | LaTeX 编译器路径 | 留空自动检测 |
 | dvisvgm 路径 | 留空自动检测 |
 | Ghostscript 库路径 | 留空自动检测 |
-| 暗色模式颜色反转 | 默认开启 |
-| 清除缓存 | 手动清除所有缓存的 SVG |
+| 暗色模式颜色反转 | 默认开启（仅 SVG 模式） |
+| 清除缓存 | 手动清除所有缓存的编译结果 |
 
 ## 许可
 

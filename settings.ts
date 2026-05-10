@@ -7,6 +7,7 @@ export interface TkPluginSettings {
   dvisvgmPath: string;
   ghostscriptLibPath: string;
   invertColorsInDarkMode: boolean;
+  outputMode: "svg" | "pdf";
 }
 
 export const DEFAULT_SETTINGS: TkPluginSettings = {
@@ -14,6 +15,7 @@ export const DEFAULT_SETTINGS: TkPluginSettings = {
   dvisvgmPath: "",
   ghostscriptLibPath: "",
   invertColorsInDarkMode: true,
+  outputMode: "svg",
 };
 
 export class TkSettingTab extends PluginSettingTab {
@@ -72,8 +74,22 @@ export class TkSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName("输出模式")
+      .setDesc("SVG：内联矢量图、动图支持、暗色模式适配；PDF：完整 LaTeX 功能、animate/OCG/表单/中文")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("svg", "SVG")
+          .addOption("pdf", "PDF")
+          .setValue(this.plugin.settings.outputMode)
+          .onChange(async (value) => {
+            this.plugin.settings.outputMode = value as "svg" | "pdf";
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
       .setName("暗色模式颜色反转")
-      .setDesc("在暗色模式下将 SVG 中的黑色切换为主题文字色，白色切换为背景色。")
+      .setDesc("在暗色模式下将 SVG 中的黑色切换为主题文字色，白色切换为背景色。仅 SVG 模式有效。")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.invertColorsInDarkMode)
@@ -85,7 +101,7 @@ export class TkSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("清除缓存")
-      .setDesc("清除所有已缓存的 SVG，下次打开笔记将重新编译。")
+      .setDesc("清除所有已缓存的 SVG/PDF，下次打开笔记将重新编译。")
       .addButton((button) =>
         button
           .setIcon("trash")

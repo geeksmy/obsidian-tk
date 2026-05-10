@@ -78,6 +78,61 @@ export default class TkPlugin extends Plugin {
     return null;
   }
 
+  findPdflatex(): string {
+    if (this.settings.compilerPath) {
+      // 用户指定了 compilerPath，尝试推导 pdflatex
+      return this.settings.compilerPath.replace(/latex$/, "pdflatex");
+    }
+    return this.findTool("pdflatex");
+  }
+
+  // ── PDF 编译管线 ──
+
+  async compilePDF(source: string, tempDir: string): Promise<string> {
+    const texFile = join(tempDir, "doc.tex");
+    const pdfFile = join(tempDir, "doc.pdf");
+    await fs.writeFile(texFile, source);
+
+    const pdflatex = this.findPdflatex();
+    const env = { ...process.env };
+
+    await new Promise<void>((resolve, reject) => {
+      exec(
+        `"${pdflatex}" -interaction=nonstopmode -halt-on-error -output-directory="${tempDir}" "${texFile}"`,
+        { cwd: tempDir, env },
+        (err, stdout) => {
+          if (err) {
+            // pdflatex 首次编译可能因缺少 aux 而报错，重试一次
+            reject(new Error(`pdflatex 编译失败:\n${stdout.slice(-800)}`));
+          } else {
+            resolve();
+          }
+        },
+      );
+    });
+
+    // 二次编译解决交叉引用
+    await new Promise<void>((resolve, reject) => {
+      exec(
+        `"${pdflatex}" -interaction=nonstopmode -halt-on-error -output-directory="${tempDir}" "${texFile}"`,
+        { cwd: tempDir, env },
+        (err) => {
+          // 第二次编译即使失败也可能已有可用 PDF
+          resolve();
+        },
+      );
+    });
+
+    if (!existsSync(pdfFile)) throw new Error("pdflatex 未生成 PDF 输出");
+    return pdfFile;
+  }
+
+  // ── PDF 缓存目录 ──
+
+  get pdfCacheDir(): string {
+    return join((this.app.vault.adapter as any).basePath, ".obsidian", "plugins", "obsidian-tk", "pdf-cache");
+  }
+
   // ── 缓存 ──
 
   hash(source: string): string {
@@ -200,29 +255,43 @@ export default class TkPlugin extends Plugin {
 
   async process(source: string, el: HTMLElement, _ctx: MarkdownPostProcessorContext) {
     const key = this.hash(source);
+    const isPDF = this.settings.outputMode === "pdf";
+    const cacheKey = isPDF ? "pdf:" + key : key;
 
-    // 固定容器——不增删 el 的直接子节点，避免干扰编辑器光标
     const container = el.createDiv({ cls: "tk-container" });
     container.setText("正在编译 TikZ 图表…");
 
     let tempDir: string | null = null;
     try {
-      const cached = await localForage.getItem<string[]>(key);
-      if (cached) {
+      if (isPDF) {
+        const cached = await localForage.getItem<Uint8Array>(cacheKey);
+        if (cached) {
+          container.empty();
+          this.renderPDF(container, cached);
+          return;
+        }
+        const tex = this.wrapSource(source);
+        tempDir = await fs.mkdtemp(join(tmpdir(), "tkrender-"));
+        const pdfPath = await this.compilePDF(tex, tempDir);
+        const data = new Uint8Array(await fs.readFile(pdfPath));
+        await localForage.setItem(cacheKey, data);
         container.empty();
-        this.renderInto(container, cached);
-        return;
+        this.renderPDF(container, data);
+      } else {
+        const cached = await localForage.getItem<string[]>(cacheKey);
+        if (cached) {
+          container.empty();
+          this.renderInto(container, cached);
+          return;
+        }
+        const tex = this.wrapSource(source);
+        tempDir = await fs.mkdtemp(join(tmpdir(), "tkrender-"));
+        const svgs = await this.compile(tex, tempDir);
+        const cleaned = svgs.map((s) => this.cleanSvg(s));
+        await localForage.setItem(cacheKey, cleaned);
+        container.empty();
+        this.renderInto(container, cleaned);
       }
-
-      const tex = this.wrapSource(source);
-      tempDir = await fs.mkdtemp(join(tmpdir(), "tkrender-"));
-      const svgs = await this.compile(tex, tempDir);
-
-      const cleaned = svgs.map((s) => this.cleanSvg(s));
-      await localForage.setItem(key, cleaned);
-
-      container.empty();
-      this.renderInto(container, cleaned);
     } catch (err) {
       container.empty();
       this.showError(container, err instanceof Error ? err.message : String(err));
@@ -231,6 +300,20 @@ export default class TkPlugin extends Plugin {
         fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
       }
     }
+  }
+
+  // ── PDF 渲染 ──
+
+  renderPDF(container: HTMLElement, data: Uint8Array) {
+    const blob = new Blob([data.buffer as ArrayBuffer], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const embed = container.createEl("embed");
+    embed.src = url;
+    embed.type = "application/pdf";
+    embed.style.width = "100%";
+    embed.style.minHeight = "600px";
+    embed.style.border = "none";
+    embed.style.borderRadius = "4px";
   }
 
   // ── 渲染入口 ──
