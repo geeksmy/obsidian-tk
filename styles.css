@@ -1,0 +1,134 @@
+/* Tk Render 容器 */
+
+.tk-container {
+  margin: 12px 0;
+  overflow-x: auto;
+}
+
+.tk-container svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* 动画帧容器 */
+
+.tk-frames {
+  position: relative;
+}
+
+.tk-frames .tk-frame {
+  visibility: hidden;
+}
+
+.tk-frames .tk-frame.active {
+  visibility: visible;
+}
+
+/* 控件条 — 叠在 SVG 底部，悬停时显现 */
+
+.tk-controls {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 200ms ease;
+  z-index: 10;
+  user-select: none;
+}
+
+.tk-frames:hover .tk-controls {
+  opacity: 1;
+}
+
+/* 按钮 */
+
+.tk-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 100ms;
+}
+
+.tk-controls button:hover {
+  opacity: 1;
+}
+
+.tk-controls button svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+/* 帧计数器 */
+
+.tk-frame-counter {
+  color: #fff;
+  font-size: 11px;
+  font-family: var(--font-monospace);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+  min-width: 36px;
+  text-align: center;
+}
+
+/* 错误显示 */
+
+.tk-error {
+  border-left: 3px solid var(--text-error);
+  padding: 8px 12px;
+  margin: 8px 0;
+  color: var(--text-error);
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--background-modifier-error);
+  border-radius: 0 4px 4px 0;
+}
+
+.tk-error summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.tk-error pre {
+  margin: 8px 0 0;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 暗色模式 */
+
+.theme-dark .tk-controls {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* 加载提示 */
+
+.tk-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}

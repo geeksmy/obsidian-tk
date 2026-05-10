@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-tk",
+  "name": "Tk Render",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "使用本地 LaTeX 工具链渲染 TikZ 图表，支持动图",
+  "author": "",
+  "isDesktopOnly": true
+}
