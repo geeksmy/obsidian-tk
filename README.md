@@ -63,10 +63,6 @@
 
 > `title` 中含有 `=` 时需要用 `{}` 括起来，如 `title={$f(x)=x^2$}`。
 
-### GeoGebra 导出
-
-直接粘贴 GeoGebra 的 TikZ 导出代码，插件自动替换 `article` 类为 `standalone`，避免空白页。
-
 ### 动图 (beamer 逐帧)
 
 <img src="images/animation.svg" alt="animation" width="420">
@@ -83,18 +79,102 @@
 
 支持 `\onslide`、`\only`、`\pause`、`\visible` 等 beamer 覆盖命令，自动检测并切换 beamer 文档类。
 
-### 更多图形类型
+### 3D 曲面
 
-| 类型 | 示例 |
-|------|------|
-| 路径绘图 | `\draw` / `\fill` / `\shade` / `\pattern` |
-| 节点坐标 | `\node` / `\coordinate` / `\pin` |
-| 循环生成 | `\foreach \x in {...} { }` |
-| pgfplots 2D | 函数曲线 / 散点 / 柱状图 / 极坐标 / 对数轴 / fill between / 参数方程 |
-| pgfplots 3D | 曲面 (surf) / 网格 (mesh) / 空间曲线 |
-| 结构图 | 树形图 / 流程图 / 思维导图 / 自动机 / 电路图 |
-| 交换图 | tikzcd |
-| 动图 | beamer 覆盖 (`\onslide` / `\pause` / `\only`) |
+<img src="images/surf3d.svg" alt="surf3d" width="420">
+
+````markdown
+```tk
+\begin{axis}[view={25}{30},colormap/viridis]
+  \addplot3[surf,domain=-3:3,y domain=-3:3,samples=30] {x^2 - y^2};
+\end{axis}
+```
+````
+
+### 散点图
+
+<img src="images/scatter.svg" alt="scatter" width="360">
+
+````markdown
+```tk
+\begin{axis}[only marks, mark=*, grid=major]
+  \addplot coordinates { (0,0) (1,2) (2,3) (3,2.5) (4,4) (5,5) };
+\end{axis}
+```
+````
+
+### 柱状图
+
+<img src="images/bar.svg" alt="bar" width="360">
+
+````markdown
+```tk
+\begin{axis}[ybar, bar width=0.6cm, enlarge x limits=0.3,
+             symbolic x coords={A,B,C,D,E}, xtick=data]
+  \addplot coordinates {(A,5) (B,8) (C,3) (D,7) (E,6)};
+\end{axis}
+```
+````
+
+### 树形图
+
+<img src="images/tree.svg" alt="tree" width="280">
+
+````markdown
+```tk
+\begin{tikzpicture}[level 1/.style={sibling distance=3cm},
+                    every node/.style={draw,rounded corners,fill=blue!10}]
+  \node {Root}
+    child { node {L} child { node {L-L} } child { node {L-R} } }
+    child { node {R} child { node {R-L} } child { node {R-R} } };
+\end{tikzpicture}
+```
+````
+
+### 流程图
+
+<img src="images/flowchart.svg" alt="flowchart" width="320">
+
+````markdown
+```tk
+\begin{tikzpicture}[node distance=2.5cm,
+  block/.style={draw,rectangle,minimum width=3cm,minimum height=1cm,fill=blue!10},
+  decision/.style={draw,diamond,aspect=2,fill=yellow!10},
+  arrow/.style={->,thick}]
+  \node[block] (start) {Start};
+  \node[block,below of=start] (proc) {Process};
+  \node[decision,below of=proc] (dec) {OK?};
+  \node[block,below of=dec,xshift=-3cm] (yes) {Yes};
+  \node[block,below of=dec,xshift=3cm] (no) {No};
+  \node[block,below of=yes] (end) {End};
+  \draw[arrow] (start) -- (proc);
+  \draw[arrow] (proc) -- (dec);
+  \draw[arrow] (dec) -- node[left] {Y} (yes);
+  \draw[arrow] (dec) -- node[right] {N} (no);
+  \draw[arrow] (yes) -- (end);
+  \draw[arrow] (no) |- (end);
+\end{tikzpicture}
+```
+````
+
+### 三角函数
+
+<img src="images/sincos.svg" alt="sincos" width="480">
+
+````markdown
+```tk
+\begin{axis}[axis lines=center,
+  xmin=-6.28, xmax=6.28, ymin=-2, ymax=2,
+  xtick={-6.28,-3.14,0,3.14,6.28},
+  xticklabels={$-2\pi$,$-\pi$,$0$,$\pi$,$2\pi$},
+  grid=major, legend pos=north east]
+  \addplot[thick,red,domain=-6.28:6.28,samples=200] {sin(deg(x))};
+  \addlegendentry{$\sin x$}
+  \addplot[thick,blue,dashed,domain=-6.28:6.28,samples=200] {cos(deg(x))};
+  \addlegendentry{$\cos x$}
+\end{axis}
+```
+````
 
 ## 自动补全
 
