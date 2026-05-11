@@ -1,6 +1,6 @@
 {
   "name": "obsidian-tk",
-  "version": "1.0.0",
+  "version": "0.0.3",
   "description": "使用本地 LaTeX 工具链在 Obsidian 中渲染 TikZ 图表",
   "main": "main.js",
   "scripts": {

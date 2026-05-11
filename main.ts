@@ -97,21 +97,60 @@ export default class TkPlugin extends Plugin {
     if (/\\begin\{document\}/.test(source)) {
       return `\\documentclass[tikz,border=10pt]{standalone}\n${source}`;
     }
-    // axis 等 pgfplots 环境需要 tikzpicture 包裹，自动补上
-    const pgfEnv = /\\begin\{(axis|semilogxaxis|semilogyaxis|loglogaxis|polaraxis)\b/;
+
     const hasTikzpicture = /\\begin\{tikzpicture\}/.test(source);
-    const inner = (!hasTikzpicture && pgfEnv.test(source))
-      ? `\\begin{tikzpicture}\n${source}\n\\end{tikzpicture}`
-      : source;
-    return [
-      `\\documentclass[tikz,border=10pt]{standalone}`,
+    const hasTikzcd = /\\begin\{tikzcd\}/.test(source);
+
+    // 检测裸的 TikZ 绘图命令（不在 tikzpicture 或 tikzcd 环境中）
+    const bareCmd = /^\s*\\(draw|fill|filldraw|shade|shadedraw|pattern|path|clip|node|coordinate|foreach|matrix|plot)\b/m;
+
+    let inner = source;
+    if (!hasTikzpicture && !hasTikzcd) {
+      const pgfEnv = /\\begin\{(axis|semilogxaxis|semilogyaxis|loglogaxis|polaraxis|ternaryaxis|groupplot)\b/;
+      if (pgfEnv.test(source) || bareCmd.test(source)) {
+        inner = `\\begin{tikzpicture}\n${source}\n\\end{tikzpicture}`;
+      }
+    }
+
+    // 根据内容自动加载需要的库
+    const extraLibs: string[] = [];
+    if (/\\begin\{tikzcd\}/.test(source)) extraLibs.push("cd");
+    if (/mindmap/.test(source)) extraLibs.push("mindmap");
+    if (/\bstate\b/.test(source) || /\binitial\b/.test(source) || /\baccepting\b/.test(source)) extraLibs.push("automata");
+    if (/circuit ee IEC/.test(source)) extraLibs.push("circuits.ee.IEC");
+
+    const extraPgfLibs: string[] = [];
+    if (/fill between/.test(source)) extraPgfLibs.push("fillbetween");
+    if (/\\begin\{polaraxis\}/.test(source)) extraPgfLibs.push("polar");
+
+    const libs = [
+      "arrows","arrows.meta","calc","decorations","patterns","shapes",
+      "positioning","backgrounds","fit","3d","shadings",
+      ...extraLibs,
+    ];
+    const tikzLibs = `\\usetikzlibrary{${libs.join(",")}}`;
+    const pgfLoad = extraPgfLibs.length
+      ? extraPgfLibs.map((l) => `\\usepgfplotslibrary{${l}}`).join("\n")
+      : "";
+
+    // 检测 beamer 覆盖命令 → 用 beamer 文档类
+    const hasBeamer = /\\onslide\b|\\only\b|\\pause\b|\\visible\b|\\invisible\b|\\alt\b|\\temporal\b|\\uncover\b/.test(source)
+      && !hasTikzcd;
+    const docclass = hasBeamer
+      ? '\\documentclass{beamer}\n\\setbeamertemplate{navigation symbols}{}'
+      : '\\documentclass[tikz,border=10pt]{standalone}';
+
+    const parts = [
+      docclass,
       `\\usepackage{pgfplots}`,
       `\\pgfplotsset{compat=1.15}`,
-      `\\usetikzlibrary{arrows,arrows.meta,calc,decorations,patterns,shapes,positioning,backgrounds,fit,3d,shadings}`,
+      pgfLoad,
+      tikzLibs,
       `\\begin{document}`,
-      inner,
+      hasBeamer ? `\\begin{frame}\n${inner}\n\\end{frame}` : inner,
       `\\end{document}`,
-    ].join("\n");
+    ];
+    return parts.filter((l) => l !== "").join("\n");
   }
 
   // ── SVG 清理 ──

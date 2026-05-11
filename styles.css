@@ -118,6 +118,11 @@
 
 /* 暗色模式 */
 
+.theme-dark .tk-container svg {
+  color: var(--text-normal);
+  fill: var(--text-normal);
+}
+
 .theme-dark .tk-controls {
   background: rgba(255, 255, 255, 0.12);
 }
